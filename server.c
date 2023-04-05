@@ -7,15 +7,16 @@
 #include <sys/types.h>
 #include <unistd.h> // read(), write(), close()
 #define MAX 80
-#define PORT 8080
+#define PORT 8081
 #define SA struct sockaddr
 
 
 
-typedef struct{
+typedef struct Pessoa{
     char email[MAX];
     char name[MAX];
     char surname[MAX];
+	struct Pessoa* next;
     /*char city[MAX];
     char formation[MAX];
     int formation_year;
@@ -27,6 +28,7 @@ void func(int connfd)
 {
 	char buff[MAX], email[MAX], name[MAX], surname[MAX];
 	int n;
+	FILE* user;
 	// infinite loop for chat
 	for (;;) {
 		bzero(buff, MAX);
@@ -52,8 +54,15 @@ void func(int connfd)
             read(connfd, buff, sizeof(buff));
             strcpy(surname, buff);
 
-            Pessoa p1 = { email, name, surname };
-            write(connfd, p1.name, sizeof(p1.name));
+            /*Pessoa p1;
+			memset(&p1, 0, sizeof(Pessoa));
+			strcpy(p1.email, email);
+			strcpy(p1.name, name);
+			strcpy(p1.surname, surname);*/
+			user = fopen("teste.txt", "w+");
+			fprintf(user, "%s%s%s", email, name, surname);
+			fclose(user);
+            //write(connfd, p1.name, sizeof(p1.name));
             //printf("%s %s %s", p1.email, p1.name, p1.surname);
 		}
 		bzero(buff, MAX);
