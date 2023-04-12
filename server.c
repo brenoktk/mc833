@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h> // read(), write(), close()
 #define MAX 80
-#define PORT 8081
+#define PORT 8080
 #define SA struct sockaddr
 
 
@@ -59,11 +59,49 @@ void func(int connfd)
 			strcpy(p1.email, email);
 			strcpy(p1.name, name);
 			strcpy(p1.surname, surname);*/
-			user = fopen("teste.txt", "w+");
-			fprintf(user, "%s%s%s", email, name, surname);
+			size_t len = strlen(email);
+			if (email[len-1] == '\n') {
+				email[len-1] = '\0';
+			}
+			char filename[MAX];
+			sprintf(filename, "users/%s.txt", email);
+			user = fopen(filename, "w+");
+			fprintf(user, "%s\n%s%s", email, name, surname);
 			fclose(user);
+			char msg3[] = "Cadastro realizado!\n";
+			write(connfd, msg, sizeof(msg));
             //write(connfd, p1.name, sizeof(p1.name));
             //printf("%s %s %s", p1.email, p1.name, p1.surname);
+		}
+		else if (strncmp("2", buff, 1) == 0) {
+			bzero(buff, MAX);
+            char msg[] = "Descadastro iniciado. Insira um e-mail\n";
+			write(connfd, msg, sizeof(msg));
+            read(connfd, buff, sizeof(buff));
+            strcpy(email, buff);
+
+			size_t len = strlen(email);
+			if (email[len-1] == '\n') {
+				email[len-1] = '\0';
+			}
+			char filename[MAX];
+			sprintf(filename, "users/%s.txt", email);
+			user = fopen(filename, "r+");
+			if(user){
+				fclose(user);
+				if (remove(filename) == 0) {
+					char msg[] = "Conta removida com sucesso!\n";
+					write(connfd, msg, sizeof(msg));
+				} else {
+					char msg[] = "Erro ao remover a conta!\n";
+					write(connfd, msg, sizeof(msg));
+    			}
+			}
+			else{
+				char msg[] = "Conta não encontrada!\n";
+				write(connfd, msg, sizeof(msg));
+			}
+			
 		}
 		bzero(buff, MAX);
 		n = 0;
