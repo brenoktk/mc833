@@ -7,14 +7,18 @@
 #include <sys/socket.h>
 #include <unistd.h> // read(), write(), close()
 #define MAX 80
-#define PORT 8081
+#define PORT 8080
 #define SA struct sockaddr
+
+
 void func(int sockfd)
 {
     char buff[MAX];
     int n;
+    // while True
     for (;;) {
         bzero(buff, sizeof(buff));
+        // 
         printf("Enter the string : ");
         n = 0;
         while ((buff[n++] = getchar()) != '\n')
