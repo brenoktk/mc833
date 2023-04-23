@@ -1,15 +1,17 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <regex.h>
+#include <dirent.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <signal.h>
 
 #define MAX 80
@@ -23,16 +25,18 @@ typedef struct Pessoa{
     char name[MAX];
     char surname[MAX];
 	struct Pessoa* next;
-    /*char city[MAX];
+    char city[MAX];
     char formation[MAX];
     int formation_year;
-    char abilities[MAX];*/
+    char abilities[MAX];
 }Pessoa;
 
 // Function designed for chat between client and server.
+// Function designed for chat between client and server.
 void func(int connfd)
 {
-	char buff[MAX], email[MAX], name[MAX], surname[MAX];
+	char buff[MAX], email[MAX], name[MAX], surname[MAX], residence[MAX], formation[MAX], year[MAX], skills[MAX];
+	regex_t regex;
 	int n;
 	FILE* user;
 	// infinite loop for chat
@@ -49,6 +53,25 @@ void func(int connfd)
             write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(email, buff);
+
+			// Compile the regex
+			if (regcomp(&regex, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.com\n$", REG_EXTENDED) != 0) {
+				printf("Could not compile regex\n");
+				break;
+			}
+
+			// Execute the regex -- broken --
+			/*if (regexec(&regex, email, 0, NULL, 0) != 0) {
+				printf("Invalid email\n");
+				char msg1[] = "Email invalido. Tente novamente.\n";
+				write(connfd, msg1, sizeof(msg1));
+				continue;
+			}*/
+
+            char msge[] = "Insira seu email\n";
+            write(connfd, msge, sizeof(msge));
+            read(connfd, buff, sizeof(buff));
+            strcpy(name, buff);           
             
             char msg1[] = "Insira seu nome\n";
             write(connfd, msg1, sizeof(msg1));
@@ -60,23 +83,41 @@ void func(int connfd)
             read(connfd, buff, sizeof(buff));
             strcpy(surname, buff);
 
-            /*Pessoa p1;
-			memset(&p1, 0, sizeof(Pessoa));
-			strcpy(p1.email, email);
-			strcpy(p1.name, name);
-			strcpy(p1.surname, surname);*/
+			char msg3[] = "Insira sua Residência\n";
+            write(connfd, msg3, sizeof(msg3));
+            read(connfd, buff, sizeof(buff));
+            strcpy(residence, buff);
+
+			char msg4[] = "Insira sua Formação Acadêmica\n";
+            write(connfd, msg4, sizeof(msg4));
+            read(connfd, buff, sizeof(buff));
+            strcpy(formation, buff);
+
+			char msg5[] = "Insira seu Ano de Formatura\n";
+            write(connfd, msg5, sizeof(msg5));
+            read(connfd, buff, sizeof(buff));
+            strcpy(year, buff);
+
+			char msg6[] = "Insira suas Habilidades\n";
+            write(connfd, msg6, sizeof(msg6));
+            read(connfd, buff, sizeof(buff));
+            strcpy(skills, buff);
+
 			size_t len = strlen(email);
 			if (email[len-1] == '\n') {
 				email[len-1] = '\0';
 			}
 			char filename[MAX];
 			sprintf(filename, "users/%s.txt", email);
+            printf("%s\n", filename);
 			user = fopen(filename, "w+");
-			fprintf(user, "%s\n%s%s", email, name, surname);
+			fprintf(user, "%s\n%s%s%s%s%s%s", email, name, surname, residence, formation, year, skills);
 			fclose(user);
-			char msg3[] = "Cadastro realizado!\n";
-			write(connfd, msg, sizeof(msg));
+			char msg7[] = "Cadastro realizado!\n";
+            printf("%s\n", filename);
+			write(connfd, msg7, sizeof(msg7));
             //write(connfd, p1.name, sizeof(p1.name));
+            printf("%s\n", filename);
             //printf("%s %s %s", p1.email, p1.name, p1.surname);
 		}
 		else if (strncmp("2", buff, 1) == 0) {
@@ -94,20 +135,59 @@ void func(int connfd)
 			sprintf(filename, "users/%s.txt", email);
 			user = fopen(filename, "r+");
 			if(user){
+				fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
 				fclose(user);
-				if (remove(filename) == 0) {
-					char msg[] = "Conta removida com sucesso!\n";
-					write(connfd, msg, sizeof(msg));
+				char msg1[] = "Insira o nome do usuário para o descadastramento\n";
+				char new_name[MAX];
+				write(connfd, msg1, sizeof(msg1));
+				read(connfd, buff, sizeof(buff));
+				strcpy(new_name, buff);
+				if (strcmp(name, new_name) == 0){
+					if (remove(filename) == 0) {
+						char msg2[] = "Conta removida com sucesso!\n";
+						write(connfd, msg2, sizeof(msg2));
+					} else {
+						char msg2[] = "Erro ao remover a conta!\n";
+						write(connfd, msg2, sizeof(msg2));
+					}
 				} else {
-					char msg[] = "Erro ao remover a conta!\n";
-					write(connfd, msg, sizeof(msg));
-    			}
+					char msg2[] = "Nome do usuário incorreto!\n";
+					write(connfd, msg2, sizeof(msg2));
+				}
 			}
 			else{
-				char msg[] = "Conta não encontrada!\n";
-				write(connfd, msg, sizeof(msg));
+				char msg2[] = "Conta não encontrada!\n";
+				write(connfd, msg2, sizeof(msg2));
 			}
 			
+		}
+		else if (strncmp("3", buff, 1) == 0) {
+			DIR *dir;
+			struct dirent *ent;
+			struct stat st;
+			char filename[MAX], target[MAX];
+			dir = opendir("users");
+			bzero(buff, MAX);
+            char msg[] = "Qual ano deseja pesquisar?\n";
+			write(connfd, msg, sizeof(msg));
+            read(connfd, buff, sizeof(buff));
+            strcpy(target, buff);
+			char msg1[MAX*2] = "\n";
+			while ((ent = readdir(dir)) != NULL) {
+				sprintf(filename, "users/%s", ent->d_name);
+				user = fopen(filename, "r+");
+				if(user){
+					fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
+					fclose(user);
+					if (strncmp(year, target, strlen(year)) == 0){
+						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+					}
+				}
+			}
+			write(connfd, msg1, sizeof(msg1));
+		}
+		else {
+			write(connfd, buff, sizeof(buff));
 		}
 		bzero(buff, MAX);
 		n = 0;
@@ -116,7 +196,6 @@ void func(int connfd)
 		//	;
 
 		// and send that buffer to client
-		write(connfd, buff, sizeof(buff));
 
 		// if msg contains "Exit" then server exit and chat ended.
 		//if (strncmp("exit", buff, 4) == 0) {
@@ -126,6 +205,7 @@ void func(int connfd)
 	}
 }
 
+// clean up zombie processes - terminated but not exited
 void sigchld_handler(int s)
 {
     // waitpid() might overwrite errno, so we save and restore it:
@@ -149,6 +229,14 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(void)
 {
+
+    //make sure /users exist
+	struct stat st = {0};
+	if (stat("/users", &st) == -1) {
+		// create directory if it does not exist
+		mkdir("/users", 0700);
+	}
+
     int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr; // connector's address information
@@ -170,18 +258,21 @@ int main(void)
 
     // loop through all the results and bind to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) {
+        printf("aaa: %d", p->ai_protocol);
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
             perror("server: socket");
             continue;
         }
 
+        // lose the pesky "Address already in use" error message
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
                 sizeof(int)) == -1) {
             perror("setsockopt");
             exit(1);
         }
 
+        // associa um socket com um endereço IP
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(sockfd);
             perror("server: bind");

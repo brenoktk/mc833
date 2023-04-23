@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h> // read(), write(), close()
 #define MAX 80
-#define PORT 8080
+#define PORT 8082
 #define SA struct sockaddr
 
 
