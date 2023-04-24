@@ -10,9 +10,34 @@
 
 #include <arpa/inet.h>
 
-#define PORT "3490" // the port client will be connecting to 
+#define PORT "7777" // the port client will be connecting to 
+
+#define MAX 80
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
+
+void func(int sockfd)
+{
+    printf("Digite a operação desejada:\n");
+    char buff[MAX];
+    int n;
+    // while True
+    for (;;) {
+        bzero(buff, sizeof(buff));
+        //printf("Enter the string : ");
+        n = 0;
+        while ((buff[n++] = getchar()) != '\n')
+            ;
+        write(sockfd, buff, sizeof(buff));
+        bzero(buff, sizeof(buff));
+        read(sockfd, buff, sizeof(buff));
+        printf("%s", buff);
+        if ((strncmp(buff, "exit", 4)) == 0) {
+            printf("Client Exit...\n");
+            break;
+        }
+    }
+}
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -72,16 +97,11 @@ int main(int argc, char *argv[])
             s, sizeof s);
     printf("client: connecting to %s\n", s);
 
-    freeaddrinfo(servinfo); // all done with this structure
+    // function for chat
+    printf("Connected!\n");
+    func(sockfd);
 
-    if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-        perror("recv");
-        exit(1);
-    }
-
-    buf[numbytes] = '\0';
-
-    printf("client: received '%s'\n",buf);
+    //freeaddrinfo(servinfo); // all done with this structure
 
     close(sockfd);
 
