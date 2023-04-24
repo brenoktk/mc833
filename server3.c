@@ -19,19 +19,6 @@
 
 #define BACKLOG 10   // how many pending connections queue will hold
 
-
-typedef struct Pessoa{
-    char email[MAX];
-    char name[MAX];
-    char surname[MAX];
-	struct Pessoa* next;
-    char city[MAX];
-    char formation[MAX];
-    int formation_year;
-    char abilities[MAX];
-}Pessoa;
-
-// Function designed for chat between client and server.
 // Function designed for chat between client and server.
 void func(int connfd)
 {
@@ -148,6 +135,31 @@ void func(int connfd)
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
 			bzero(buff, MAX);
+            char msg[] = "Qual curso deseja pesquisar?\n";
+			write(connfd, msg, sizeof(msg));
+            read(connfd, buff, sizeof(buff));
+            strcpy(target, buff);
+			char msg1[MAX*2] = "\n";
+			while ((ent = readdir(dir)) != NULL) {
+				sprintf(filename, "users/%s", ent->d_name);
+				user = fopen(filename, "r+");
+				if(user){
+					fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
+					fclose(user);
+					if (strncmp(formation, target, strlen(formation)) == 0){
+						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+					}
+				}
+			}
+			write(connfd, msg1, sizeof(msg1));
+		}
+        else if (strncmp("5", buff, 1) == 0) {
+			DIR *dir;
+			struct dirent *ent;
+			struct stat st;
+			char filename[MAX], target[MAX];
+			dir = opendir("users");
+			bzero(buff, MAX);
             char msg[] = "Qual ano deseja pesquisar?\n";
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
@@ -160,7 +172,7 @@ void func(int connfd)
 					fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
 					fclose(user);
 					if (strncmp(year, target, strlen(year)) == 0){
-						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+						sprintf(msg1, "%sEmail:%s | Nome:%s | Curso:%s\n", msg1, email, name, formation);
 					}
 				}
 			}
