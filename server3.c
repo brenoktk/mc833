@@ -15,7 +15,7 @@
 #include <signal.h>
 
 #define MAX 80
-#define PORT "7999"  // the port users will be connecting to
+#define PORT "7990"  // the port users will be connecting to
 
 #define BACKLOG 10   // how many pending connections queue will hold
 
@@ -76,7 +76,7 @@ void func(int connfd)
             write(connfd, msg6, sizeof(msg6));
             read(connfd, buff, sizeof(buff));
             strcpy(skills, buff);
-			email[strlen(email)-2] = '\0';
+			email[strlen(email)-1] = '\0';
 			char filename[MAX];
 			sprintf(filename, "users/%s.txt", email);
             printf("%s\n", filename);
@@ -90,6 +90,29 @@ void func(int connfd)
             printf("%s\n", filename);
             //printf("%s %s %s", p1.email, p1.name, p1.surname);
 		}
+        else if (strncmp("0", buff, 1) == 0) {
+			bzero(buff, MAX);
+            char msg[] = "Insira um e-mail para mostrar os dados\n";
+			write(connfd, msg, sizeof(msg));
+            read(connfd, buff, sizeof(buff));
+            strcpy(email, buff);
+            bzero(buff, MAX);
+			email[strlen(email)-1] = '\0';
+			char filename[MAX];
+			sprintf(filename, "users/%s.txt", email);
+			user = fopen(filename, "r+");
+			if(user){
+				fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
+				fclose(user);
+				char msg1[MAX*6];
+                sprintf(msg1, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n", email, name, surname, residence, formation, year, skills);
+				write(connfd, msg1, sizeof(msg1));
+			}
+			else{
+				char msg2[] = "Conta não encontrada!\n";
+				write(connfd, msg2, sizeof(msg2));
+			}
+		}
 		else if (strncmp("2", buff, 1) == 0) {
 			bzero(buff, MAX);
             char msg[] = "Descadastro iniciado. Insira um e-mail\n";
@@ -97,7 +120,7 @@ void func(int connfd)
             read(connfd, buff, sizeof(buff));
             strcpy(email, buff);
             bzero(buff, MAX);
-			email[strlen(email)-2] = '\0';
+			email[strlen(email)-1] = '\0';
 			char filename[MAX];
 			sprintf(filename, "users/%s.txt", email);
 			user = fopen(filename, "r+");
@@ -174,6 +197,25 @@ void func(int connfd)
 					if (strncmp(year, target, strlen(year)) == 0){
 						sprintf(msg1, "%sEmail:%s | Nome:%s | Curso:%s\n", msg1, email, name, formation);
 					}
+				}
+			}
+			write(connfd, msg1, sizeof(msg1));
+		}
+        else if (strncmp("6", buff, 1) == 0) {
+			DIR *dir;
+			struct dirent *ent;
+			struct stat st;
+			char filename[MAX], target[MAX];
+			dir = opendir("users");
+			bzero(buff, MAX);
+			char msg1[999999] = "\n";
+			while ((ent = readdir(dir)) != NULL) {
+				sprintf(filename, "users/%s", ent->d_name);
+				user = fopen(filename, "r+");
+				if(user){
+					fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
+					fclose(user);
+					sprintf(msg1, "%sEmail:%s | Nome:%s | Sobrenome:%s | Residência:%s | Curso:%s | Ano:%s | Habilidades: %s\n", msg1, email, name, surname, residence, formation, year, skills);
 				}
 			}
 			write(connfd, msg1, sizeof(msg1));
