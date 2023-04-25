@@ -15,7 +15,7 @@
 #include <signal.h>
 
 #define MAX 80
-#define PORT "7990"  // the port users will be connecting to
+#define PORT "8002"  // the port users will be connecting to
 
 #define BACKLOG 10   // how many pending connections queue will hold
 
@@ -28,49 +28,47 @@ void func(int connfd)
 	FILE* user;
 	// infinite loop for chat
 	for (;;) {
-		bzero(buff, MAX);
-
 		// read the message from client and copy it in buffer
 		read(connfd, buff, sizeof(buff));
 		// print buffer which contains the client contents
-		printf("From client: %s\t", buff);
+		printf("From client: %s", buff);
         if (strncmp("1", buff, 1) == 0) {
-            bzero(buff, MAX);
+            
             char msg[] = "Cadastro iniciado. Insira um e-mail\n";
             write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(email, buff);
-            bzero(buff, MAX);
+            
             
             char msg1[] = "Insira seu nome\n";
             write(connfd, msg1, sizeof(msg1));
             read(connfd, buff, sizeof(buff));
             strcpy(name, buff);
-            bzero(buff, MAX);
+            
 
             char msg2[] = "Insira seu sobrenome\n";
             write(connfd, msg2, sizeof(msg2));
             read(connfd, buff, sizeof(buff));
             strcpy(surname, buff);
-            bzero(buff, MAX);
+            
 
 			char msg3[] = "Insira sua Residência\n";
             write(connfd, msg3, sizeof(msg3));
             read(connfd, buff, sizeof(buff));
             strcpy(residence, buff);
-            bzero(buff, MAX);
+            
 
 			char msg4[] = "Insira sua Formação Acadêmica\n";
             write(connfd, msg4, sizeof(msg4));
             read(connfd, buff, sizeof(buff));
             strcpy(formation, buff);
-            bzero(buff, MAX);
+            
 
 			char msg5[] = "Insira seu Ano de Formatura\n";
             write(connfd, msg5, sizeof(msg5));
             read(connfd, buff, sizeof(buff));
             strcpy(year, buff);
-            bzero(buff, MAX);
+            
 
 			char msg6[] = "Insira suas Habilidades\n";
             write(connfd, msg6, sizeof(msg6));
@@ -91,12 +89,12 @@ void func(int connfd)
             //printf("%s %s %s", p1.email, p1.name, p1.surname);
 		}
         else if (strncmp("0", buff, 1) == 0) {
-			bzero(buff, MAX);
+			
             char msg[] = "Insira um e-mail para mostrar os dados\n";
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(email, buff);
-            bzero(buff, MAX);
+            
 			email[strlen(email)-1] = '\0';
 			char filename[MAX];
 			sprintf(filename, "users/%s.txt", email);
@@ -114,12 +112,12 @@ void func(int connfd)
 			}
 		}
 		else if (strncmp("2", buff, 1) == 0) {
-			bzero(buff, MAX);
+			
             char msg[] = "Descadastro iniciado. Insira um e-mail\n";
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(email, buff);
-            bzero(buff, MAX);
+            
 			email[strlen(email)-1] = '\0';
 			char filename[MAX];
 			sprintf(filename, "users/%s.txt", email);
@@ -157,7 +155,7 @@ void func(int connfd)
 			struct stat st;
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
-			bzero(buff, MAX);
+			
             char msg[] = "Qual curso deseja pesquisar?\n";
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
@@ -182,7 +180,7 @@ void func(int connfd)
 			struct stat st;
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
-			bzero(buff, MAX);
+			
             char msg[] = "Qual ano deseja pesquisar?\n";
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
@@ -207,7 +205,7 @@ void func(int connfd)
 			struct stat st;
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
-			bzero(buff, MAX);
+			
 			char msg1[999999] = "\n";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
