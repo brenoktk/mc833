@@ -29,23 +29,29 @@ void func(int connfd)
 		printf("From client: %s", buff);
         if (strncmp("1", buff, 1) == 0) {
 
-            char msg[] = "Cadastro iniciado. Insira um e-mail\n";
-            write(connfd, msg, sizeof(msg));
-            read(connfd, buff, sizeof(buff));
-            strcpy(email, buff);
-
+			int check = 0;
+			char msg[] = "Cadastro iniciado. Insira um e-mail\n";
 			// Compile the regex
 			if (regcomp(&regex, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.com\n$", REG_EXTENDED) != 0) {
 				printf("Could not compile regex\n");
 				break;
 			}
+			write(connfd, msg, sizeof(msg));
+			read(connfd, buff, sizeof(buff));
+			strcpy(email, buff);
 
-			// Execute the regex
-			if (regexec(&regex, email, 0, NULL, 0) != 0) {
-				printf("Invalid email\n");
-				char msg1[] = "Email invalido. Tente novamente.\n";
-				write(connfd, msg1, sizeof(msg1));
-				continue;
+			while(check == 0){			
+				// Execute the regex
+				if (regexec(&regex, email, 0, NULL, 0) != 0) {
+					printf("Invalid email\n");
+					char msg1[] = "Email invalido. Tente novamente.\n";
+					write(connfd, msg1, sizeof(msg1));
+					read(connfd, buff, sizeof(buff));
+					strcpy(email, buff);
+				}
+				else{
+					check = 1;
+				}
 			}
             
             char msg1[] = "Insira seu nome\n";
