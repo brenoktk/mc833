@@ -6,8 +6,8 @@
 #include <strings.h> // bzero()
 #include <sys/socket.h>
 #include <unistd.h> // read(), write(), close()
-#define MAX 80
-#define PORT 8080
+#define MAX 1000
+#define PORT 8095
 #define SA struct sockaddr
 void func(int sockfd)
 {
