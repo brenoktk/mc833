@@ -10,11 +10,9 @@
 
 #include <arpa/inet.h>
 
-#define PORT "7777" // the port client will be connecting to 
+#define PORT "8000" // the port client will be connecting to 
 
-#define MAX 80
-
-#define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define MAX 1000
 
 void func(int sockfd)
 {
@@ -51,8 +49,7 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(int argc, char *argv[])
 {
-    int sockfd, numbytes;  
-    char buf[MAXDATASIZE];
+    int sockfd, numbytes;
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];

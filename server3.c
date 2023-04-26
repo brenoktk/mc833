@@ -14,8 +14,8 @@
 #include <sys/stat.h>
 #include <signal.h>
 
-#define MAX 80
-#define PORT "8002"  // the port users will be connecting to
+#define MAX 1000
+#define PORT "8000"  // the port users will be connecting to
 
 #define BACKLOG 10   // how many pending connections queue will hold
 
@@ -33,42 +33,56 @@ void func(int connfd)
 		// print buffer which contains the client contents
 		printf("From client: %s", buff);
         if (strncmp("1", buff, 1) == 0) {
-            
-            char msg[] = "Cadastro iniciado. Insira um e-mail\n";
-            write(connfd, msg, sizeof(msg));
-            read(connfd, buff, sizeof(buff));
-            strcpy(email, buff);
-            
+
+			int check = 0;
+			char msg[] = "Cadastro iniciado. Insira um e-mail\n";
+			// Compile the regex
+			if (regcomp(&regex, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.com\n$", REG_EXTENDED) != 0) {
+				printf("Could not compile regex\n");
+				break;
+			}
+			write(connfd, msg, sizeof(msg));
+			read(connfd, buff, sizeof(buff));
+			strcpy(email, buff);
+
+			while(check == 0){			
+				// Execute the regex
+				if (regexec(&regex, email, 0, NULL, 0) != 0) {
+					printf("Invalid email\n");
+					char msg1[] = "Email invalido. Tente novamente.\n";
+					write(connfd, msg1, sizeof(msg1));
+					read(connfd, buff, sizeof(buff));
+					strcpy(email, buff);
+				}
+				else{
+					check = 1;
+				}
+			}
             
             char msg1[] = "Insira seu nome\n";
             write(connfd, msg1, sizeof(msg1));
             read(connfd, buff, sizeof(buff));
             strcpy(name, buff);
-            
 
             char msg2[] = "Insira seu sobrenome\n";
             write(connfd, msg2, sizeof(msg2));
             read(connfd, buff, sizeof(buff));
             strcpy(surname, buff);
-            
 
 			char msg3[] = "Insira sua Residência\n";
             write(connfd, msg3, sizeof(msg3));
             read(connfd, buff, sizeof(buff));
             strcpy(residence, buff);
-            
 
 			char msg4[] = "Insira sua Formação Acadêmica\n";
             write(connfd, msg4, sizeof(msg4));
             read(connfd, buff, sizeof(buff));
             strcpy(formation, buff);
-            
 
 			char msg5[] = "Insira seu Ano de Formatura\n";
             write(connfd, msg5, sizeof(msg5));
             read(connfd, buff, sizeof(buff));
             strcpy(year, buff);
-            
 
 			char msg6[] = "Insira suas Habilidades\n";
             write(connfd, msg6, sizeof(msg6));
@@ -82,11 +96,7 @@ void func(int connfd)
 			fprintf(user, "%s\n%s%s%s%s%s%s", email, name, surname, residence, formation, year, skills);
 			fclose(user);
 			char msg7[] = "Cadastro realizado!\n";
-            printf("%s\n", filename);
 			write(connfd, msg7, sizeof(msg7));
-            //write(connfd, p1.name, sizeof(p1.name));
-            printf("%s\n", filename);
-            //printf("%s %s %s", p1.email, p1.name, p1.surname);
 		}
         else if (strncmp("0", buff, 1) == 0) {
 			
@@ -102,7 +112,7 @@ void func(int connfd)
 			if(user){
 				fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
 				fclose(user);
-				char msg1[MAX*6];
+				char msg1[MAX];
                 sprintf(msg1, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n", email, name, surname, residence, formation, year, skills);
 				write(connfd, msg1, sizeof(msg1));
 			}
@@ -112,12 +122,10 @@ void func(int connfd)
 			}
 		}
 		else if (strncmp("2", buff, 1) == 0) {
-			
             char msg[] = "Descadastro iniciado. Insira um e-mail\n";
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
-            strcpy(email, buff);
-            
+            strcpy(email, buff); 
 			email[strlen(email)-1] = '\0';
 			char filename[MAX];
 			sprintf(filename, "users/%s.txt", email);
@@ -155,12 +163,11 @@ void func(int connfd)
 			struct stat st;
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
-			
             char msg[] = "Qual curso deseja pesquisar?\n";
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX*2] = "\n";
+			char msg1[MAX] = "\n";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -174,6 +181,32 @@ void func(int connfd)
 			}
 			write(connfd, msg1, sizeof(msg1));
 		}
+		else if (strncmp("4", buff, 1) == 0) {
+			DIR *dir;
+			struct dirent *ent;
+			struct stat st;
+			char filename[MAX], target[MAX];
+			dir = opendir("users");
+            char msg[] = "Qual habilidade deseja pesquisar?\n";
+			write(connfd, msg, sizeof(msg));
+            read(connfd, buff, sizeof(buff));
+            strcpy(target, buff);
+			char msg1[MAX] = "\n";
+			target[strlen(target)-1] = '\0';
+			while ((ent = readdir(dir)) != NULL) {
+				sprintf(filename, "users/%s", ent->d_name);
+				user = fopen(filename, "r+");
+				if(user){
+					fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
+					fclose(user);
+					if (strstr(skills, target) != NULL){
+						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+					}
+				}
+			}
+			write(connfd, msg1, sizeof(msg1));
+		}
+
         else if (strncmp("5", buff, 1) == 0) {
 			DIR *dir;
 			struct dirent *ent;
@@ -185,7 +218,7 @@ void func(int connfd)
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX*2] = "\n";
+			char msg1[MAX] = "\n";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -206,7 +239,7 @@ void func(int connfd)
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
 			
-			char msg1[999999] = "\n";
+			char msg1[MAX] = "\n";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
