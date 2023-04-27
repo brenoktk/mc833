@@ -15,7 +15,7 @@
 #include <signal.h>
 
 #define MAX 2000
-#define PORT "8003"  // the port users will be connecting to
+#define PORT "8000"  // the port users will be connecting to
 
 #define BACKLOG 10   // how many pending connections queue will hold
 
