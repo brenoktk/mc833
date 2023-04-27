@@ -10,9 +10,9 @@
 
 #include <arpa/inet.h>
 
-#define PORT "8000" // the port client will be connecting to 
+#define PORT "8003" // the port client will be connecting to 
 
-#define MAX 1000
+#define MAX 2000
 
 void func(int sockfd)
 {
