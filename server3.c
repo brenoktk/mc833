@@ -167,7 +167,7 @@ void func(int connfd)
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -191,7 +191,7 @@ void func(int connfd)
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
 			target[strlen(target)-1] = '\0';
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
@@ -218,7 +218,7 @@ void func(int connfd)
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -239,7 +239,7 @@ void func(int connfd)
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
 			
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
