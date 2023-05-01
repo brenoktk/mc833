@@ -168,6 +168,7 @@ void func(int connfd)
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
 			char msg1[MAX] = "";
+			int check3 = 0;
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -176,10 +177,17 @@ void func(int connfd)
 					fclose(user);
 					if (strncmp(formation, target, strlen(formation)) == 0){
 						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+						check3 = 1;
 					}
 				}
 			}
-			write(connfd, msg1, sizeof(msg1));
+			if(check3){
+				write(connfd, msg1, sizeof(msg1));
+			}
+			else{
+				char msgnf[] = "Não encontramos resultados\n";
+				write(connfd, msgnf, sizeof(msgnf));
+			}
 		}
 		else if (strncmp("4", buff, 1) == 0) {
 			DIR *dir;
@@ -193,6 +201,7 @@ void func(int connfd)
             strcpy(target, buff);
 			char msg1[MAX] = "";
 			target[strlen(target)-1] = '\0';
+			int check4 = 0;
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -201,10 +210,17 @@ void func(int connfd)
 					fclose(user);
 					if (strstr(skills, target) != NULL){
 						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+						check4 = 1;
 					}
 				}
 			}
-			write(connfd, msg1, sizeof(msg1));
+			if(check4){
+				write(connfd, msg1, sizeof(msg1));
+			}
+			else{
+				char msgnf[] = "Não encontramos resultados\n";
+				write(connfd, msgnf, sizeof(msgnf));
+			}
 		}
 
         else if (strncmp("5", buff, 1) == 0) {
@@ -219,6 +235,7 @@ void func(int connfd)
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
 			char msg1[MAX] = "";
+			int check5 = 0;
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -227,10 +244,17 @@ void func(int connfd)
 					fclose(user);
 					if (strncmp(year, target, strlen(year)) == 0){
 						sprintf(msg1, "%sEmail:%s | Nome:%s | Curso:%s\n", msg1, email, name, formation);
+						check5 = 1;
 					}
 				}
 			}
-			write(connfd, msg1, sizeof(msg1));
+			if(check5){
+				write(connfd, msg1, sizeof(msg1));
+			}
+			else{
+				char msgnf[] = "Não encontramos resultados\n";
+				write(connfd, msgnf, sizeof(msgnf));
+			}
 		}
         else if (strncmp("6", buff, 1) == 0) {
 			DIR *dir;
@@ -256,17 +280,6 @@ void func(int connfd)
 		}
 		bzero(buff, MAX);
 		n = 0;
-		// copy server message in the buffer
-		//while ((buff[n++] = getchar()) != '\n')
-		//	;
-
-		// and send that buffer to client
-
-		// if msg contains "Exit" then server exit and chat ended.
-		//if (strncmp("exit", buff, 4) == 0) {
-		//	printf("Server Exit...\n");
-		//	break;
-		//}
 	}
 }
 
@@ -323,7 +336,6 @@ int main(void)
 
     // loop through all the results and bind to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) {
-        printf("aaa: %d", p->ai_protocol);
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
             perror("server: socket");
