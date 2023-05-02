@@ -15,7 +15,7 @@
 #include <signal.h>
 
 #define MAX 2000
-#define PORT "8000"  // the port users will be connecting to
+#define PORT "8008"  // the port users will be connecting to
 
 #define BACKLOG 10   // how many pending connections queue will hold
 
@@ -39,7 +39,8 @@ void func(int connfd)
 3 - Listar todas as pessoas formadas em um curso\n\
 4 - Listar todas as pessoas que possuem uma habilidade\n\
 5 - Listar todas as pessoas formadas em um ano\n\
-6 - Listar todos os perfis\n";
+6 - Listar todos os perfis\n\
+Digite a operação desejada:\n";
 			write(connfd, msg1, sizeof(msg1));
 			bzero(buff, MAX);
 		}
@@ -106,7 +107,7 @@ void func(int connfd)
 			user = fopen(filename, "w+");
 			fprintf(user, "%s\n%s%s%s%s%s%s", email, name, surname, residence, formation, year, skills);
 			fclose(user);
-			char msg7[] = "Cadastro realizado!\n";
+			char msg7[] = "Cadastro realizado!\nDigite a operação desejada:\n";
 			write(connfd, msg7, sizeof(msg7));
 		}
         else if (strncmp("0", buff, 1) == 0) {
@@ -124,11 +125,11 @@ void func(int connfd)
 				fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
 				fclose(user);
 				char msg1[MAX];
-                sprintf(msg1, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n", email, name, surname, residence, formation, year, skills);
+                sprintf(msg1, "%s\n%s\n%s\n%s\n%s\n%s\n%s\nDigite a operação desejada:\n", email, name, surname, residence, formation, year, skills);
 				write(connfd, msg1, sizeof(msg1));
 			}
 			else{
-				char msg2[] = "Conta não encontrada!\n";
+				char msg2[] = "Conta não encontrada!\nDigite a operação desejada:\n";
 				write(connfd, msg2, sizeof(msg2));
 			}
 		}
@@ -151,19 +152,19 @@ void func(int connfd)
 				strcpy(new_name, buff);
 				if (strncmp(name, new_name, strlen(name)) == 0){
 					if (remove(filename) == 0) {
-						char msg2[] = "Conta removida com sucesso!\n";
+						char msg2[] = "Conta removida com sucesso!\nDigite a operação desejada:\n";
 						write(connfd, msg2, sizeof(msg2));
 					} else {
-						char msg2[] = "Erro ao remover a conta!\n";
+						char msg2[] = "Erro ao remover a conta!\nDigite a operação desejada:\n";
 						write(connfd, msg2, sizeof(msg2));
 					}
 				} else {
-					char msg2[] = "Nome do usuário incorreto!\n";
+					char msg2[] = "Nome do usuário incorreto!\nDigite a operação desejada:\n";
 					write(connfd, msg2, sizeof(msg2));
 				}
 			}
 			else{
-				char msg2[] = "Conta não encontrada!\n";
+				char msg2[] = "Conta não encontrada!\nDigite a operação desejada:\n";
 				write(connfd, msg2, sizeof(msg2));
 			}
 			
@@ -193,10 +194,11 @@ void func(int connfd)
 				}
 			}
 			if(check3){
+				sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
 				write(connfd, msg1, sizeof(msg1));
 			}
 			else{
-				char msgnf[] = "Não encontramos resultados\n";
+				char msgnf[] = "Não encontramos resultados\nDigite a operação desejada:\n";
 				write(connfd, msgnf, sizeof(msgnf));
 			}
 		}
@@ -226,10 +228,11 @@ void func(int connfd)
 				}
 			}
 			if(check4){
+				sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
 				write(connfd, msg1, sizeof(msg1));
 			}
 			else{
-				char msgnf[] = "Não encontramos resultados\n";
+				char msgnf[] = "Não encontramos resultados\nDigite a operação desejada:\n";
 				write(connfd, msgnf, sizeof(msgnf));
 			}
 		}
@@ -260,10 +263,11 @@ void func(int connfd)
 				}
 			}
 			if(check5){
+				sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
 				write(connfd, msg1, sizeof(msg1));
 			}
 			else{
-				char msgnf[] = "Não encontramos resultados\n";
+				char msgnf[] = "Não encontramos resultados\nDigite a operação desejada:\n";
 				write(connfd, msgnf, sizeof(msgnf));
 			}
 		}
@@ -284,9 +288,11 @@ void func(int connfd)
 					sprintf(msg1, "%sEmail:%s | Nome:%s | Sobrenome:%s | Residência:%s | Curso:%s | Ano:%s | Habilidades: %s\n", msg1, email, name, surname, residence, formation, year, skills);
 				}
 			}
+			sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
 			write(connfd, msg1, sizeof(msg1));
 		}
 		else {
+			sprintf(buff, "%sDigite a operação desejada:\n", buff);
 			write(connfd, buff, sizeof(buff));
 		}
 		bzero(buff, MAX);

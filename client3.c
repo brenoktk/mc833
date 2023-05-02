@@ -10,7 +10,7 @@
 
 #include <arpa/inet.h>
 
-#define PORT "8000" // the port client will be connecting to 
+#define PORT "8008" // the port client will be connecting to 
 
 #define MAX 2000
 
