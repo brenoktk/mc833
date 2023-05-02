@@ -32,7 +32,18 @@ void func(int connfd)
 		read(connfd, buff, sizeof(buff));
 		// print buffer which contains the client contents
 		printf("From client: %s", buff);
-        if (strncmp("1", buff, 1) == 0) {
+		if (strncmp("help", buff, 4) == 0){
+			char msg1[] = "0 - Retornar as informações de um perfil\n\
+1 - Cadastrar um novo perfil\n\
+2 - Remover um perfil\n\
+3 - Listar todas as pessoas formadas em um curso\n\
+4 - Listar todas as pessoas que possuem uma habilidade\n\
+5 - Listar todas as pessoas formadas em um ano\n\
+6 - Listar todos os perfis\n";
+			write(connfd, msg1, sizeof(msg1));
+			bzero(buff, MAX);
+		}
+        else if (strncmp("1", buff, 1) == 0) {
 
 			int check = 0;
 			char msg[] = "Cadastro iniciado. Insira um e-mail\n";
@@ -84,7 +95,7 @@ void func(int connfd)
             read(connfd, buff, sizeof(buff));
             strcpy(year, buff);
 
-			char msg6[] = "Insira suas Habilidades\n";
+			char msg6[] = "Insira suas Habilidades (separadas por vírgula)\n";
             write(connfd, msg6, sizeof(msg6));
             read(connfd, buff, sizeof(buff));
             strcpy(skills, buff);
