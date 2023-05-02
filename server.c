@@ -1,18 +1,23 @@
 #include <stdio.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h> // read(), write(), close()
 #include <regex.h>
 #include <dirent.h>
-#define MAX 1000
-#define PORT 8095
-#define SA struct sockaddr
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <signal.h>
 
+#define MAX 2000
+#define PORT "8008"  // the port users will be connecting to
+
+#define BACKLOG 10   // how many pending connections queue will hold
 
 // Function designed for chat between client and server.
 void func(int connfd)
@@ -27,7 +32,19 @@ void func(int connfd)
 		read(connfd, buff, sizeof(buff));
 		// print buffer which contains the client contents
 		printf("From client: %s", buff);
-        if (strncmp("1", buff, 1) == 0) {
+		if (strncmp("help", buff, 4) == 0){
+			char msg1[] = "0 - Retornar as informações de um perfil\n\
+1 - Cadastrar um novo perfil\n\
+2 - Remover um perfil\n\
+3 - Listar todas as pessoas formadas em um curso\n\
+4 - Listar todas as pessoas que possuem uma habilidade\n\
+5 - Listar todas as pessoas formadas em um ano\n\
+6 - Listar todos os perfis\n\
+Digite a operação desejada:\n";
+			write(connfd, msg1, sizeof(msg1));
+			bzero(buff, MAX);
+		}
+        else if (strncmp("1", buff, 1) == 0) {
 
 			int check = 0;
 			char msg[] = "Cadastro iniciado. Insira um e-mail\n";
@@ -79,7 +96,7 @@ void func(int connfd)
             read(connfd, buff, sizeof(buff));
             strcpy(year, buff);
 
-			char msg6[] = "Insira suas Habilidades\n";
+			char msg6[] = "Insira suas Habilidades (separadas por vírgula)\n";
             write(connfd, msg6, sizeof(msg6));
             read(connfd, buff, sizeof(buff));
             strcpy(skills, buff);
@@ -90,7 +107,7 @@ void func(int connfd)
 			user = fopen(filename, "w+");
 			fprintf(user, "%s\n%s%s%s%s%s%s", email, name, surname, residence, formation, year, skills);
 			fclose(user);
-			char msg7[] = "Cadastro realizado!\n";
+			char msg7[] = "Cadastro realizado!\nDigite a operação desejada:\n";
 			write(connfd, msg7, sizeof(msg7));
 		}
         else if (strncmp("0", buff, 1) == 0) {
@@ -108,11 +125,11 @@ void func(int connfd)
 				fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
 				fclose(user);
 				char msg1[MAX];
-                sprintf(msg1, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n", email, name, surname, residence, formation, year, skills);
+                sprintf(msg1, "%s\n%s\n%s\n%s\n%s\n%s\n%s\nDigite a operação desejada:\n", email, name, surname, residence, formation, year, skills);
 				write(connfd, msg1, sizeof(msg1));
 			}
 			else{
-				char msg2[] = "Conta não encontrada!\n";
+				char msg2[] = "Conta não encontrada!\nDigite a operação desejada:\n";
 				write(connfd, msg2, sizeof(msg2));
 			}
 		}
@@ -135,19 +152,19 @@ void func(int connfd)
 				strcpy(new_name, buff);
 				if (strncmp(name, new_name, strlen(name)) == 0){
 					if (remove(filename) == 0) {
-						char msg2[] = "Conta removida com sucesso!\n";
+						char msg2[] = "Conta removida com sucesso!\nDigite a operação desejada:\n";
 						write(connfd, msg2, sizeof(msg2));
 					} else {
-						char msg2[] = "Erro ao remover a conta!\n";
+						char msg2[] = "Erro ao remover a conta!\nDigite a operação desejada:\n";
 						write(connfd, msg2, sizeof(msg2));
 					}
 				} else {
-					char msg2[] = "Nome do usuário incorreto!\n";
+					char msg2[] = "Nome do usuário incorreto!\nDigite a operação desejada:\n";
 					write(connfd, msg2, sizeof(msg2));
 				}
 			}
 			else{
-				char msg2[] = "Conta não encontrada!\n";
+				char msg2[] = "Conta não encontrada!\nDigite a operação desejada:\n";
 				write(connfd, msg2, sizeof(msg2));
 			}
 			
@@ -162,7 +179,8 @@ void func(int connfd)
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
+			int check3 = 0;
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -171,10 +189,18 @@ void func(int connfd)
 					fclose(user);
 					if (strncmp(formation, target, strlen(formation)) == 0){
 						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+						check3 = 1;
 					}
 				}
 			}
-			write(connfd, msg1, sizeof(msg1));
+			if(check3){
+				sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
+				write(connfd, msg1, sizeof(msg1));
+			}
+			else{
+				char msgnf[] = "Não encontramos resultados\nDigite a operação desejada:\n";
+				write(connfd, msgnf, sizeof(msgnf));
+			}
 		}
 		else if (strncmp("4", buff, 1) == 0) {
 			DIR *dir;
@@ -186,8 +212,9 @@ void func(int connfd)
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
 			target[strlen(target)-1] = '\0';
+			int check4 = 0;
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -196,10 +223,18 @@ void func(int connfd)
 					fclose(user);
 					if (strstr(skills, target) != NULL){
 						sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+						check4 = 1;
 					}
 				}
 			}
-			write(connfd, msg1, sizeof(msg1));
+			if(check4){
+				sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
+				write(connfd, msg1, sizeof(msg1));
+			}
+			else{
+				char msgnf[] = "Não encontramos resultados\nDigite a operação desejada:\n";
+				write(connfd, msgnf, sizeof(msgnf));
+			}
 		}
 
         else if (strncmp("5", buff, 1) == 0) {
@@ -213,7 +248,8 @@ void func(int connfd)
 			write(connfd, msg, sizeof(msg));
             read(connfd, buff, sizeof(buff));
             strcpy(target, buff);
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
+			int check5 = 0;
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -222,10 +258,18 @@ void func(int connfd)
 					fclose(user);
 					if (strncmp(year, target, strlen(year)) == 0){
 						sprintf(msg1, "%sEmail:%s | Nome:%s | Curso:%s\n", msg1, email, name, formation);
+						check5 = 1;
 					}
 				}
 			}
-			write(connfd, msg1, sizeof(msg1));
+			if(check5){
+				sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
+				write(connfd, msg1, sizeof(msg1));
+			}
+			else{
+				char msgnf[] = "Não encontramos resultados\nDigite a operação desejada:\n";
+				write(connfd, msgnf, sizeof(msgnf));
+			}
 		}
         else if (strncmp("6", buff, 1) == 0) {
 			DIR *dir;
@@ -234,7 +278,7 @@ void func(int connfd)
 			char filename[MAX], target[MAX];
 			dir = opendir("users");
 			
-			char msg1[MAX] = "\n";
+			char msg1[MAX] = "";
 			while ((ent = readdir(dir)) != NULL) {
 				sprintf(filename, "users/%s", ent->d_name);
 				user = fopen(filename, "r+");
@@ -244,84 +288,140 @@ void func(int connfd)
 					sprintf(msg1, "%sEmail:%s | Nome:%s | Sobrenome:%s | Residência:%s | Curso:%s | Ano:%s | Habilidades: %s\n", msg1, email, name, surname, residence, formation, year, skills);
 				}
 			}
+			sprintf(msg1, "%sDigite a operação desejada:\n", msg1);
 			write(connfd, msg1, sizeof(msg1));
 		}
 		else {
+			sprintf(buff, "%sDigite a operação desejada:\n", buff);
 			write(connfd, buff, sizeof(buff));
 		}
 		bzero(buff, MAX);
 		n = 0;
-		// copy server message in the buffer
-		//while ((buff[n++] = getchar()) != '\n')
-		//	;
-
-		// and send that buffer to client
-
-		// if msg contains "Exit" then server exit and chat ended.
-		//if (strncmp("exit", buff, 4) == 0) {
-		//	printf("Server Exit...\n");
-		//	break;
-		//}
 	}
 }
 
-// Driver function
-int main()
+// clean up zombie processes - terminated but not exited
+void sigchld_handler(int s)
 {
-	int sockfd, connfd, len;
-	struct sockaddr_in servaddr, cli;
+    // waitpid() might overwrite errno, so we save and restore it:
+    int saved_errno = errno;
 
-	//make sure /users exist
+    while(waitpid(-1, NULL, WNOHANG) > 0);
+
+    errno = saved_errno;
+}
+
+
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+int main(void)
+{
+
+    //make sure /users exist
 	struct stat st = {0};
 	if (stat("/users", &st) == -1) {
 		// create directory if it does not exist
 		mkdir("/users", 0700);
 	}
 
-	// socket create and verification
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd == -1) {
-		printf("socket creation failed...\n");
-		exit(0);
-	}
-	else
-		printf("Socket successfully created..\n");
-	bzero(&servaddr, sizeof(servaddr));
+    int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
+    struct addrinfo hints, *servinfo, *p;
+    struct sockaddr_storage their_addr; // connector's address information
+    socklen_t sin_size;
+    struct sigaction sa;
+    int yes=1;
+    char s[INET6_ADDRSTRLEN];
+    int rv;
 
-	// assign IP, PORT
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port = htons(PORT);
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE; // use my IP
 
-	// Binding newly created socket to given IP and verification
-	if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) {
-		printf("socket bind failed...\n");
-		exit(0);
-	}
-	else
-		printf("Socket successfully binded..\n");
+    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
 
-	// Now server is ready to listen and verification
-	if ((listen(sockfd, 5)) != 0) {
-		printf("Listen failed...\n");
-		exit(0);
-	}
-	else
-		printf("Server listening..\n");
-	len = sizeof(cli);
+    // loop through all the results and bind to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("server: socket");
+            continue;
+        }
 
-	// Accept the data packet from client and verification
-	connfd = accept(sockfd, (SA*)&cli, &len);
-	if (connfd < 0) {
-		printf("server accept failed...\n");
-		exit(0);
-	}
-	else
-		printf("server accept the client...\n");
+        // lose the pesky "Address already in use" error message
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+                sizeof(int)) == -1) {
+            perror("setsockopt");
+            exit(1);
+        }
 
-	// Function for chatting between client and server
-	func(connfd);
+        // associa um socket com um endereço IP
+        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("server: bind");
+            continue;
+        }
 
-	// After chatting close the socket
-	close(sockfd);
+        break;
+    }
+
+    freeaddrinfo(servinfo); // all done with this structure
+
+    if (p == NULL)  {
+        fprintf(stderr, "server: failed to bind\n");
+        exit(1);
+    }
+
+    if (listen(sockfd, BACKLOG) == -1) {
+        perror("listen");
+        exit(1);
+    }
+
+    sa.sa_handler = sigchld_handler; // reap all dead processes
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(1);
+    }
+
+    printf("server: waiting for connections...\n");
+
+    while(1) {  // main accept() loop
+        sin_size = sizeof their_addr;
+        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+        if (new_fd == -1) {
+            perror("accept");
+            continue;
+        }
+
+        inet_ntop(their_addr.ss_family,
+            get_in_addr((struct sockaddr *)&their_addr),
+            s, sizeof s);
+        printf("server: got connection from %s\n", s);
+
+        if (!fork()) { // this is the child process
+        // Function for chatting between client and server
+	        func(new_fd);
+            close(sockfd); // child doesn't need the listener
+            if (send(new_fd, "Hello, world!", 13, 0) == -1)
+                perror("send");
+            close(new_fd);
+            exit(0);
+        }
+        close(new_fd);  // parent doesn't need this
+    }
+
+    return 0;
 }
