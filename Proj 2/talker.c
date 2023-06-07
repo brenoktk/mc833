@@ -125,6 +125,44 @@ int main(int argc, char* argv[]) {
             ;
         request[n-1] = '\0';
         op = 2;
+    }else if(!(strncmp(request, "srch_skill", strlen("srch_skill")))){
+        printf("talker: what skill to search?\n");
+        int n = strlen(request);
+        request[n] = ' ';
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        request[n-1] = '\0';
+        op = 3;
+    }else if(!(strncmp(request, "srch_year", strlen("srch_year")))){
+        printf("talker: what year to search?\n");
+        int n = strlen(request);
+        request[n] = ' ';
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        request[n-1] = '\0';
+        op = 4;
+    }else if(!(strncmp(request, "list", strlen("list")))){
+        op = 5;
+    }else if(!(strncmp(request, "srch_usr", strlen("srch_usr")))){
+        printf("talker: what email to search?\n");
+        int n = strlen(request);
+        request[n] = ' ';
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        request[n-1] = '\0';
+        op = 7;
+    }else if(!(strncmp(request, "remove", strlen("remove")))){
+        printf("talker: what email to remove?\n");
+        int n = strlen(request);
+        request[n] = ' ';
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        request[n-1] = '\0';
+        op = 8;
     }
     bool rcv = true;
     freeaddrinfo(servinfo);
@@ -156,6 +194,7 @@ int main(int argc, char* argv[]) {
             perror("talker: recvfrom");
             exit(1);
         }
+        buf[numbytes] = '\0';
         printf("server: %s\n", buf);
     }
     close(sockfd);
