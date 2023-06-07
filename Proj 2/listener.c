@@ -10,6 +10,7 @@
 #include <netdb.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <regex.h>
 
 #define MYPORT "8005"    // the port users will be connecting to
 #define MAX_CHUNK_SIZE 1024  // Maximum size of each message chunk
@@ -96,7 +97,7 @@ void search_field(int sockfd, const struct sockaddr* addr, socklen_t addr_len, c
     }
 
     if (!(check)){
-        char msgnf[] = "Não encontramos resultados";
+        char msgnf[] = "Não encontramos resultados\n";
         strcpy(msg1, msgnf);
     }
 
@@ -104,6 +105,86 @@ void search_field(int sockfd, const struct sockaddr* addr, socklen_t addr_len, c
         perror("listener: sendto");
         exit(1);
     }
+}
+
+void remove_user(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* target_email) {
+    FILE* user;
+    char filename[MAX_CHUNK_SIZE], msg2[MAX_CHUNK_SIZE];
+    sprintf(filename, "users/%s.txt", target_email);
+    user = fopen(filename, "r+");
+    if (user) {
+        if (remove(filename) == 0) {
+            sprintf(msg2, "Conta removida com sucesso!\n");
+        } else {
+            sprintf(msg2, "Erro ao remover a conta!\n");
+        }
+    } else {
+        sprintf(msg2, "Conta não encontrada!\n");
+    }
+    if (sendto(sockfd, msg2, sizeof(msg2), 0, addr, addr_len) == -1) {
+        perror("listener: sendto");
+        exit(1);
+    }
+}
+
+void show_user_data(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* target_email) {
+    char email[MAX_CHUNK_SIZE], name[MAX_CHUNK_SIZE], surname[MAX_CHUNK_SIZE], residence[MAX_CHUNK_SIZE], formation[MAX_CHUNK_SIZE], year[MAX_CHUNK_SIZE], skills[MAX_CHUNK_SIZE];
+    FILE* user;
+    char filename[MAX_CHUNK_SIZE], msg1[MAX_CHUNK_SIZE];;
+    sprintf(filename, "users/%s.txt", target_email);
+    user = fopen(filename, "r+");
+    if (user) {
+        fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
+        fclose(user);
+        sprintf(msg1, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n", email, name, surname, residence, formation, year, skills);
+        
+    } else {
+        sprintf(msg1, "Conta não encontrada!\n");
+    }
+    if (sendto(sockfd, msg1, sizeof(msg1), 0, addr, addr_len) == -1) {
+        perror("listener: sendto");
+        exit(1);
+    }
+}
+
+#include <regex.h>
+
+void save_user_data(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* email, const char* name, const char* surname, const char* residence, const char* formation, const char* year, const char* skills) {
+    FILE* user;
+    char filename[MAX_CHUNK_SIZE];
+    sprintf(filename, "users/%s.txt", email);
+    user = fopen(filename, "w+");
+    fprintf(user, "%s\n%s%s%s%s%s%s", email, name, surname, residence, formation, year, skills);
+    fclose(user);
+
+    char msg[] = "Cadastro realizado!\n";
+    if (sendto(sockfd, msg, sizeof(msg), 0, addr, addr_len) == -1) {
+        perror("listener: sendto");
+        exit(1);
+    }
+}
+
+int validate_email(const char* email) {
+    regex_t regex;
+    int ret;
+
+    // Compile the regex
+    ret = regcomp(&regex, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.com$", REG_EXTENDED);
+    if (ret != 0) {
+        printf("Could not compile regex\n");
+        return 0;
+    }
+
+    // Execute the regex
+    ret = regexec(&regex, email, 0, NULL, 0);
+    if (ret != 0) {
+        return 0;
+    }
+
+    // Free the regex resources
+    regfree(&regex);
+
+    return 1;
 }
 
 int main(void) {
@@ -175,9 +256,34 @@ int main(void) {
             sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
             break;
         } else if (strncmp(buf, "register", strlen("register")) == 0) {
-            char* buf = "done";
-            sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
-        } else if (strncmp(buf, "srch_frmt", strlen("srch_frmt")) == 0) {
+            char* token = strtok(buf, " ");  // Split the input string by space
+            char* email = strtok(NULL, " ");  // Get the email
+            char* name = strtok(NULL, " ");  // Get the name
+            char* surname = strtok(NULL, " ");  // Get the surname
+            char* residence = strtok(NULL, " ");  // Get the residence
+            char* formation = strtok(NULL, " ");  // Get the formation
+            char* year = strtok(NULL, " ");  // Get the year
+            char* skills = strtok(NULL, "");  // Get the skills
+
+            if (email == NULL || name == NULL || surname == NULL || residence == NULL || formation == NULL || year == NULL || skills == NULL) {
+                char invalidFormatMsg[] = "Formato inválido. Tente novamente.\n";
+                sendto(sockfd, invalidFormatMsg, sizeof(invalidFormatMsg), 0, (struct sockaddr*)&their_addr, addr_len);
+                continue;
+            }
+
+            // Validate the email
+            if (!validate_email(email)) {
+                char invalidEmailMsg[] = "Email inválido. Tente novamente.\n";
+                sendto(sockfd, invalidEmailMsg, sizeof(invalidEmailMsg), 0, (struct sockaddr*)&their_addr, addr_len);
+                continue;
+            }
+
+            // Call the save_user_data function with the received data
+            save_user_data(sockfd, (struct sockaddr*)&their_addr, addr_len, email, name, surname, residence, formation, year, skills);
+
+            char successMsg[] = "Cadastro realizado!\nDigite a operação desejada:\n";
+            sendto(sockfd, successMsg, sizeof(successMsg), 0, (struct sockaddr*)&their_addr, addr_len);
+            } else if (strncmp(buf, "srch_frmt", strlen("srch_frmt")) == 0) {
             // Parse the target formation from the received message
             char target[MAX_CHUNK_SIZE];
             sscanf(buf, "srch_frmt %s", target);
@@ -199,11 +305,17 @@ int main(void) {
             // Retrieve the list of users and send it to the talker
             retrieve_user_list(sockfd, (struct sockaddr*)&their_addr, addr_len);
         } else if (strncmp(buf, "srch_usr", strlen("srch_usr")) == 0) {
-            char* buf = "done";
-            sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
+            // Parse the target email from the received message
+            char target[MAX_CHUNK_SIZE];
+            sscanf(buf, "srch_frmt %s", target);
+            // Perform the search by calling the show_user_data function
+            show_user_data(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         } else if (strncmp(buf, "remove", strlen("remove")) == 0) {
-            char* buf = "done";
-            sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
+            // Parse the target email from the received message
+            char target[MAX_CHUNK_SIZE];
+            sscanf(buf, "srch_frmt %s", target);
+            // Perform the removal by calling the remove_user function
+            remove_user(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         }
     }
 
