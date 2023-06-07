@@ -90,50 +90,41 @@ int main(int argc, char* argv[]) {
         n++;
         while ((request[n++] = getchar()) != '\n')
             ;
-        n -= 1;
         request[n-1] = ' ';
-        request[n] = ' ';
         printf("talker: what is the user's name?\n");
-        n++;
         while ((request[n++] = getchar()) != '\n')
             ;
-        n -= 1;
         request[n-1] = ' ';
-        request[n] = ' ';
         printf("talker: what is the user's surname?\n");
-        n++;
         while ((request[n++] = getchar()) != '\n')
             ;
-        n -= 1;
         request[n-1] = ' ';
-        request[n] = ' ';
         printf("talker: what is the user's residence?\n");
-        n++;
         while ((request[n++] = getchar()) != '\n')
             ;
-        n -= 1;
         request[n-1] = ' ';
-        request[n] = ' ';
         printf("talker: what is the user's formation?\n");
-        n++;
         while ((request[n++] = getchar()) != '\n')
             ;
-        n -= 1;
         request[n-1] = ' ';
-        request[n] = ' ';
         printf("talker: what is the user's graduation year?\n");
-        n++;
         while ((request[n++] = getchar()) != '\n')
             ;
-        n -= 1;
         request[n-1] = ' ';
-request[n] = ' ';
         printf("talker: what is the user's skills?\n");
-        n++;
         while ((request[n++] = getchar()) != '\n')
             ;
         request[n-1] = '\0';
         op=1;
+    }else if(!(strncmp(request, "srch_frmt", strlen("srch_frmt")))){
+        printf("talker: what formation to search?\n");
+        int n = strlen(request);
+        request[n] = ' ';
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        request[n-1] = '\0';
+        op = 2;
     }
     bool rcv = true;
     freeaddrinfo(servinfo);
@@ -165,7 +156,7 @@ request[n] = ' ';
             perror("talker: recvfrom");
             exit(1);
         }
-        printf("%s", buf);
+        printf("server: %s\n", buf);
     }
     close(sockfd);
     return 0;

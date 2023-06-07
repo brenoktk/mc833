@@ -101,6 +101,9 @@ int main(void) {
         }else if(!(strncmp(buf, "register", strlen("register")))){
             char* buf = "done";
             sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
+        }else if(!(strncmp(buf, "srch_frmt", strlen("register")))){
+            char* buf = "done";
+            sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
         }
     }
 
