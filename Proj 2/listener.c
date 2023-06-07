@@ -10,17 +10,36 @@
 #include <netdb.h>
 
 #define MYPORT "8005"    // the port users will be connecting to
+#define MAX_CHUNK_SIZE 1024  // Maximum size of each message chunk
 
-#define MAXBUFLEN 1024  // Maximum size of the receive buffer
+// Function to send chunks to the talker
+void send_chunks(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* filename) {
+    FILE* file = fopen(filename, "rb");
+    if (file == NULL) {
+        perror("listener: fopen");
+        exit(1);
+    }
+
+    char buf[MAX_CHUNK_SIZE];
+    size_t numbytes;
+
+    while ((numbytes = fread(buf, 1, MAX_CHUNK_SIZE, file)) > 0) {
+        if (sendto(sockfd, buf, numbytes, 0, addr, addr_len) == -1) {
+            perror("listener: sendto");
+            exit(1);
+        }
+    }
+
+    fclose(file);
+}
 
 int main(void) {
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
-    int numbytes;
     struct sockaddr_storage their_addr;
     socklen_t addr_len;
-    char buf[MAXBUFLEN];
+    char buf[MAX_CHUNK_SIZE];
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET; // set to AF_INET to use IPv4
@@ -55,35 +74,37 @@ int main(void) {
 
     freeaddrinfo(servinfo);
 
-    printf("listener: waiting to receive chunks...\n");
-
-    FILE* file = fopen("received.png", "wb");
-    if (file == NULL) {
-        perror("listener: fopen");
-        exit(1);
-    }
+    printf("listener: waiting to receive requests...\n");
 
     for (;;) {
         addr_len = sizeof their_addr;
-        if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN, 0, (struct sockaddr*)&their_addr, &addr_len)) == -1) {
-            perror("recvfrom");
+        int numbytes = recvfrom(sockfd, buf, MAX_CHUNK_SIZE - 1, 0, (struct sockaddr*)&their_addr, &addr_len);
+        if (numbytes == -1) {
+            perror("listener: recvfrom");
             exit(1);
         }
 
-        printf("listener: received %d bytes\n", numbytes);
+        printf("buf");
+        buf[numbytes] = '\0';
 
-        fwrite(buf, 1, numbytes, file);
+        printf("listener: received request - %s\n", buf);
 
-        // Assuming the last chunk received has size less than MAXBUFLEN, it indicates the end of the file
-        if (numbytes < MAXBUFLEN) {
+        // Check if the request is for downloading an image
+        if (strncmp(buf, "download",  strlen("download")) == 0) {
+            // Send the image in chunks to the talker
+            send_chunks(sockfd, (struct sockaddr*)&their_addr, addr_len, "../gaton.png");
+        }else if (strncmp(buf, "exit", strlen("exit")) == 0) {
+            // Send the image in chunks to the talker
+            char* buf = "done";
+            sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
             break;
+        }else if(!(strncmp(buf, "register", strlen("register")))){
+            char* buf = "done";
+            sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
         }
     }
 
-    fclose(file);
     close(sockfd);
-
-    printf("listener: received file saved as 'received.png'\n");
 
     return 0;
 }

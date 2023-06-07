@@ -8,66 +8,42 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <stdbool.h>
 
 #define SERVERPORT "8005"    // the port users will be connecting to
-
 #define MAX_CHUNK_SIZE 1024  // Maximum size of each message chunk
 
-// Function to split the message into chunks and send them
-void send_chunks(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* message, size_t message_len) {
-    size_t offset = 0;
-    size_t remaining = message_len;
+// Function to receive chunks from the listener
+bool receive_chunks(int sockfd, struct sockaddr* addr, socklen_t addr_len, FILE* file) {
+    char buf[MAX_CHUNK_SIZE];
+    socklen_t sender_addr_len;
+    int numbytes;
 
-    while (remaining > 0) {
-        size_t chunk_size = remaining > MAX_CHUNK_SIZE ? MAX_CHUNK_SIZE : remaining;
-
-        ssize_t numbytes = sendto(sockfd, message + offset, chunk_size, 0, addr, addr_len);
+    while (1) {
+        sender_addr_len = addr_len;
+        numbytes = recvfrom(sockfd, buf, MAX_CHUNK_SIZE, 0, addr, &sender_addr_len);
         if (numbytes == -1) {
-            perror("talker: sendto");
+            perror("talker: recvfrom");
             exit(1);
         }
 
-        printf("talker: sent %zd bytes\n", numbytes);
+        fwrite(buf, 1, numbytes, file);
 
-        offset += numbytes;
-        remaining -= numbytes;
+        // Assuming the last chunk received has size less than MAX_CHUNK_SIZE, it indicates the end of the file
+        if (numbytes < MAX_CHUNK_SIZE) {
+            break;
+        }
     }
+    return false;
 }
 
 int main(int argc, char* argv[]) {
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
-    int rv;
+    int rv, op, numbytes;
 
     if (argc != 3) {
-        fprintf(stderr, "usage: talker hostname file.png\n");
-        exit(1);
-    }
-
-    char* filename = argv[2];
-    FILE* file = fopen(filename, "rb");
-    if (file == NULL) {
-        fprintf(stderr, "Failed to open file: %s\n", filename);
-        exit(1);
-    }
-
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    char* buffer = (char*)malloc(file_size);
-    if (buffer == NULL) {
-        fprintf(stderr, "Failed to allocate memory for file\n");
-        fclose(file);
-        exit(1);
-    }
-
-    size_t read_bytes = fread(buffer, 1, file_size, file);
-    fclose(file);
-
-    if (read_bytes != file_size) {
-        fprintf(stderr, "Failed to read file: %s\n", filename);
-        free(buffer);
+        fprintf(stderr,"usage: talker hostname operation\n");
         exit(1);
     }
 
@@ -95,12 +71,102 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
-    send_chunks(sockfd, p->ai_addr, p->ai_addrlen, buffer, file_size);
-
+    char request[MAX_CHUNK_SIZE];
+    strcpy(request, argv[2]);
+    op = -1;
+    if (!(strncmp(request, "download", strlen("download")))){
+        printf("talker: what user to download image from?\n");
+        int n = strlen(request);
+        request[n] = ' ';
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        request[n-1] = '\0';
+        op = 0;
+    }else if(!(strncmp(request, "register", strlen("register")))){
+        printf("talker: what is the user email?\n");
+        int n = strlen(request);
+        request[n] = ' ';
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        n -= 1;
+        request[n-1] = ' ';
+        request[n] = ' ';
+        printf("talker: what is the user's name?\n");
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        n -= 1;
+        request[n-1] = ' ';
+        request[n] = ' ';
+        printf("talker: what is the user's surname?\n");
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        n -= 1;
+        request[n-1] = ' ';
+        request[n] = ' ';
+        printf("talker: what is the user's residence?\n");
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        n -= 1;
+        request[n-1] = ' ';
+        request[n] = ' ';
+        printf("talker: what is the user's formation?\n");
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        n -= 1;
+        request[n-1] = ' ';
+        request[n] = ' ';
+        printf("talker: what is the user's graduation year?\n");
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        n -= 1;
+        request[n-1] = ' ';
+request[n] = ' ';
+        printf("talker: what is the user's skills?\n");
+        n++;
+        while ((request[n++] = getchar()) != '\n')
+            ;
+        request[n-1] = '\0';
+        op=1;
+    }
+    bool rcv = true;
     freeaddrinfo(servinfo);
-    free(buffer);
+    if(op == 0){
+        FILE* file = fopen("received.png", "wb");
+        if (file == NULL) {
+            perror("talker: fopen");
+            exit(1);
+        }
+        while(rcv){
+            if (sendto(sockfd, request, strlen(request), 0, p->ai_addr, p->ai_addrlen) == -1) {
+                perror("talker: sendto");
+                exit(1);
+            }
+            rcv = receive_chunks(sockfd, p->ai_addr, p->ai_addrlen, file);
+        }
 
+        fclose(file);
+
+        printf("talker: received file saved as 'received.png'\n");
+    } else {
+        char buf[MAX_CHUNK_SIZE];
+        if (sendto(sockfd, request, strlen(request), 0, p->ai_addr, p->ai_addrlen) == -1) {
+            perror("talker: sendto");
+            exit(1);
+        }
+        numbytes = recvfrom(sockfd, buf, MAX_CHUNK_SIZE - 1, 0, p->ai_addr, &p->ai_addrlen);
+        if (numbytes == -1) {
+            perror("talker: recvfrom");
+            exit(1);
+        }
+        printf("%s", buf);
+    }
     close(sockfd);
-
     return 0;
 }
