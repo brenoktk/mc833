@@ -12,8 +12,9 @@
 #include <sys/stat.h>
 #include <regex.h>
 
-#define MYPORT "8005"    // the port users will be connecting to
+#define MYPORT "8000"    // the port users will be connecting to
 #define MAX_CHUNK_SIZE 1024  // Maximum size of each message chunk
+#define MAX 100 // Maximum size of each user info
 
 // Function to send chunks to the talker
 void send_chunks(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* filename) {
@@ -48,7 +49,7 @@ void retrieve_user_list(int sockfd, const struct sockaddr* addr, socklen_t addr_
         sprintf(filename, "../users/%s", ent->d_name);
         FILE *user = fopen(filename, "r+");
         if (user) {
-            char email[MAX_CHUNK_SIZE], name[MAX_CHUNK_SIZE], surname[MAX_CHUNK_SIZE], residence[MAX_CHUNK_SIZE], formation[MAX_CHUNK_SIZE], year[MAX_CHUNK_SIZE], skills[MAX_CHUNK_SIZE];
+            char email[MAX], name[MAX], surname[MAX], residence[MAX], formation[MAX], year[MAX], skills[MAX];
             fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
             fclose(user);
             sprintf(msg1, "%sEmail:%s | Nome:%s | Sobrenome:%s | Residência:%s | Curso:%s | Ano:%s | Habilidades: %s\n", msg1, email, name, surname, residence, formation, year, skills);
@@ -73,7 +74,7 @@ void search_field(int sockfd, const struct sockaddr* addr, socklen_t addr_len, c
         sprintf(filename, "../users/%s", ent->d_name);
         FILE *user = fopen(filename, "r+");
         if (user) {
-            char email[MAX_CHUNK_SIZE], name[MAX_CHUNK_SIZE], surname[MAX_CHUNK_SIZE], residence[MAX_CHUNK_SIZE], formation[MAX_CHUNK_SIZE], year[MAX_CHUNK_SIZE], skills[MAX_CHUNK_SIZE];
+            char email[MAX], name[MAX], surname[MAX], residence[MAX], formation[MAX], year[MAX], skills[MAX];
             fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
             fclose(user);
 
@@ -110,7 +111,7 @@ void search_field(int sockfd, const struct sockaddr* addr, socklen_t addr_len, c
 void remove_user(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* target_email) {
     FILE* user;
     char filename[MAX_CHUNK_SIZE], msg2[MAX_CHUNK_SIZE];
-    sprintf(filename, "users/%s.txt", target_email);
+    sprintf(filename, "../users/%s.txt", target_email);
     user = fopen(filename, "r+");
     if (user) {
         if (remove(filename) == 0) {
@@ -128,10 +129,10 @@ void remove_user(int sockfd, const struct sockaddr* addr, socklen_t addr_len, co
 }
 
 void show_user_data(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* target_email) {
-    char email[MAX_CHUNK_SIZE], name[MAX_CHUNK_SIZE], surname[MAX_CHUNK_SIZE], residence[MAX_CHUNK_SIZE], formation[MAX_CHUNK_SIZE], year[MAX_CHUNK_SIZE], skills[MAX_CHUNK_SIZE];
+    char email[MAX], name[MAX], surname[MAX], residence[MAX], formation[MAX], year[MAX], skills[MAX];
     FILE* user;
     char filename[MAX_CHUNK_SIZE], msg1[MAX_CHUNK_SIZE];;
-    sprintf(filename, "users/%s.txt", target_email);
+    sprintf(filename, "../users/%s.txt", target_email);
     user = fopen(filename, "r+");
     if (user) {
         fscanf(user, "%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n%[^\n]%*c\n", email, name, surname, residence, formation, year, skills);
@@ -152,9 +153,9 @@ void show_user_data(int sockfd, const struct sockaddr* addr, socklen_t addr_len,
 void save_user_data(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* email, const char* name, const char* surname, const char* residence, const char* formation, const char* year, const char* skills) {
     FILE* user;
     char filename[MAX_CHUNK_SIZE];
-    sprintf(filename, "users/%s.txt", email);
+    sprintf(filename, "../users/%s.txt", email);
     user = fopen(filename, "w+");
-    fprintf(user, "%s\n%s%s%s%s%s%s", email, name, surname, residence, formation, year, skills);
+    fprintf(user, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n", email, name, surname, residence, formation, year, skills);
     fclose(user);
 
     char msg[] = "Cadastro realizado!\n";
@@ -252,7 +253,7 @@ int main(void) {
             // Send the image in chunks to the talker
             send_chunks(sockfd, (struct sockaddr*)&their_addr, addr_len, "../gaton.png");
         } else if (strncmp(buf, "exit", strlen("exit")) == 0) {
-            char* buf = "done";
+            char* buf = "done\n";
             sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
             break;
         } else if (strncmp(buf, "register", strlen("register")) == 0) {
@@ -281,7 +282,7 @@ int main(void) {
             // Call the save_user_data function with the received data
             save_user_data(sockfd, (struct sockaddr*)&their_addr, addr_len, email, name, surname, residence, formation, year, skills);
 
-            char successMsg[] = "Cadastro realizado!\nDigite a operação desejada:\n";
+            char successMsg[] = "Cadastro realizado!";
             sendto(sockfd, successMsg, sizeof(successMsg), 0, (struct sockaddr*)&their_addr, addr_len);
             } else if (strncmp(buf, "srch_frmt", strlen("srch_frmt")) == 0) {
             // Parse the target formation from the received message
@@ -307,13 +308,13 @@ int main(void) {
         } else if (strncmp(buf, "srch_usr", strlen("srch_usr")) == 0) {
             // Parse the target email from the received message
             char target[MAX_CHUNK_SIZE];
-            sscanf(buf, "srch_frmt %s", target);
+            sscanf(buf, "srch_usr %s", target);
             // Perform the search by calling the show_user_data function
             show_user_data(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         } else if (strncmp(buf, "remove", strlen("remove")) == 0) {
             // Parse the target email from the received message
             char target[MAX_CHUNK_SIZE];
-            sscanf(buf, "srch_frmt %s", target);
+            sscanf(buf, "remove %s", target);
             // Perform the removal by calling the remove_user function
             remove_user(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         }

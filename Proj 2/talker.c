@@ -10,7 +10,7 @@
 #include <netdb.h>
 #include <stdbool.h>
 
-#define SERVERPORT "8005"    // the port users will be connecting to
+#define SERVERPORT "8000"    // the port users will be connecting to
 #define MAX_CHUNK_SIZE 1024  // Maximum size of each message chunk
 
 // Function to receive chunks from the listener
@@ -195,7 +195,7 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
         buf[numbytes] = '\0';
-        printf("server: %s\n", buf);
+        printf("server: %s", buf);
     }
     close(sockfd);
     return 0;
