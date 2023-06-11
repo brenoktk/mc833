@@ -84,17 +84,7 @@ int main(int argc, char* argv[]) {
         request[n-1] = '\0';
         op = 0;
     }else if(!(strncmp(request, "help", strlen("help")))){
-        char msg1[] = "srch_usr - Retornar as informações de um perfil\n\
-register - Cadastrar um novo perfil\n\
-remove - Remover um perfil\n\
-srch_frmt - Listar todas as pessoas formadas em um curso\n\
-srch_skill - Listar todas as pessoas que possuem uma habilidade\n\
-srch_year - Listar todas as pessoas formadas em um ano\n\
-list - Listar todos os perfis\n\
-download - Fazer download da imagem de um perfil\n\
-exit - Fecha o servidor\n";
-        printf(msg1);
-        exit(1);                
+        op = 9;              
     }else if(!(strncmp(request, "register", strlen("register")))){
         printf("talker: what is the user email?\n");
         int n = strlen(request);

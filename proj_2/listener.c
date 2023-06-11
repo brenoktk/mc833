@@ -317,6 +317,18 @@ int main(void) {
             sscanf(buf, "remove %s", target);
             // Perform the removal by calling the remove_user function
             remove_user(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
+        } else if (strncmp(buf, "help", strlen("help")) == 0) {
+            char helpMsg[] = "Available commands:\n"
+                             "download - Download the image of a profile\n"
+                             "register - Register a new profile\n"
+                             "srch_frmt - List all people who graduated from a course\n"
+                             "srch_skill - List all people who have a skill\n"
+                             "srch_year - List all people who graduated in a year\n"
+                             "list - List all profiles\n"
+                             "srch_usr - Return information about a profile\n"
+                             "remove - Remove a profile\n"
+                             "exit - Close the server\n";
+            sendto(sockfd, helpMsg, sizeof(helpMsg), 0, (struct sockaddr*)&their_addr, addr_len);
         } else {
             char invalidCommandMsg[] = "Invalid command, try again.\n";
             sendto(sockfd, invalidCommandMsg, sizeof(invalidCommandMsg), 0, (struct sockaddr*)&their_addr, addr_len);
