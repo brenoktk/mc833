@@ -317,6 +317,9 @@ int main(void) {
             sscanf(buf, "remove %s", target);
             // Perform the removal by calling the remove_user function
             remove_user(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
+        } else {
+            char invalidCommandMsg[] = "Invalid command, try again.\n";
+            sendto(sockfd, invalidCommandMsg, sizeof(invalidCommandMsg), 0, (struct sockaddr*)&their_addr, addr_len);
         }
     }
 

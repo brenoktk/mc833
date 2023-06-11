@@ -91,7 +91,8 @@ srch_frmt - Listar todas as pessoas formadas em um curso\n\
 srch_skill - Listar todas as pessoas que possuem uma habilidade\n\
 srch_year - Listar todas as pessoas formadas em um ano\n\
 list - Listar todos os perfis\n\
-download - Fazer download da imagem de um perfil";
+download - Fazer download da imagem de um perfil\n\
+exit - Fecha o servidor\n";
         printf(msg1);
         exit(1);                
     }else if(!(strncmp(request, "register", strlen("register")))){
