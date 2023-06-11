@@ -91,8 +91,14 @@ void search_field(int sockfd, const struct sockaddr* addr, socklen_t addr_len, c
             }
 
             if (strstr(target_field, target) != NULL) {
-                sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
-                check = 1;
+                if (strcmp(field_name, "year") == 0){
+                    sprintf(msg1, "%sEmail:%s | Nome:%s | Curso:%s\n", msg1, email, name, formation);
+                    check = 1;
+                }
+                else{
+                    sprintf(msg1, "%sEmail:%s | Nome:%s\n", msg1, email, name);
+                    check = 1;
+                }
             }
         }
     }
@@ -319,14 +325,14 @@ int main(void) {
             remove_user(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         } else if (strncmp(buf, "help", strlen("help")) == 0) {
             char helpMsg[] = "Available commands:\n"
-                             "download - Download the image of a profile\n"
                              "register - Register a new profile\n"
+                             "remove - Remove a profile\n"
+                             "list - List all profiles\n"
+                             "srch_usr - Return information about a profile\n"
                              "srch_frmt - List all people who graduated from a course\n"
                              "srch_skill - List all people who have a skill\n"
                              "srch_year - List all people who graduated in a year\n"
-                             "list - List all profiles\n"
-                             "srch_usr - Return information about a profile\n"
-                             "remove - Remove a profile\n"
+                             "download - Download the image of a profile\n"
                              "exit - Close the server\n";
             sendto(sockfd, helpMsg, sizeof(helpMsg), 0, (struct sockaddr*)&their_addr, addr_len);
         } else {
