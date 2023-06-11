@@ -17,7 +17,10 @@
 #define MAX 100 // Maximum size of each user info
 
 // Function to send chunks to the talker
-void send_chunks(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* filename) {
+void send_chunks(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* target_email) {
+    char filename[MAX_CHUNK_SIZE];
+    sprintf(filename, "../users/%s.png", target_email);
+    printf(filename);
     FILE* file = fopen(filename, "rb");
     if (file == NULL) {
         perror("listener: fopen");
@@ -257,7 +260,10 @@ int main(void) {
         // Check if the request is for downloading an image
         if (strncmp(buf, "download", strlen("download")) == 0) {
             // Send the image in chunks to the talker
-            send_chunks(sockfd, (struct sockaddr*)&their_addr, addr_len, "../gaton.png");
+            char target[MAX_CHUNK_SIZE];
+            sscanf(buf, "download %s", target);
+            printf(target);
+            send_chunks(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         } else if (strncmp(buf, "exit", strlen("exit")) == 0) {
             char* buf = "done\n";
             sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
