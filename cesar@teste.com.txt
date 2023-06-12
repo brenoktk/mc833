@@ -1,7 +1,0 @@
-cesar@teste.com
-Cesar
-Guedes
-Campinas
-Engenharia
-2023
-Programar em C, Japonês

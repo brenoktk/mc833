@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,32 +13,33 @@
 #include <sys/stat.h>
 #include <regex.h>
 
-#define MYPORT "8000"    // the port users will be connecting to
-#define MAX_CHUNK_SIZE 1024  // Maximum size of each message chunk
-#define MAX 100 // Maximum size of each user info
+#define MYPORT "8000"       //Número da porta
+#define MAX_CHUNK_SIZE 1024 //Tamanho máximo de cada chunk de mensagem
+#define MAX 100             // Tamanho máximo de cada informação de usuário
 
-// Function to send chunks to the talker
+//Envia os chunks da imagem ao talker
 void send_chunks(int sockfd, const struct sockaddr* addr, socklen_t addr_len, const char* target_email) {
-    char filename[MAX_CHUNK_SIZE];
-    sprintf(filename, "../users/%s.png", target_email);
-    printf(filename);
+    char filename[MAX_CHUNK_SIZE], buf[MAX_CHUNK_SIZE];
+    sprintf(filename, "../imgs/%s.png", target_email);
     FILE* file = fopen(filename, "rb");
     if (file == NULL) {
-        perror("listener: fopen");
-        exit(1);
-    }
-
-    char buf[MAX_CHUNK_SIZE];
-    size_t numbytes;
-
-    while ((numbytes = fread(buf, 1, MAX_CHUNK_SIZE, file)) > 0) {
-        if (sendto(sockfd, buf, numbytes, 0, addr, addr_len) == -1) {
+        sprintf(buf, "Imagem nao existe");
+        if (sendto(sockfd, buf, sizeof(buf), 0, addr, addr_len) == -1) {
             perror("listener: sendto");
             exit(1);
         }
-    }
+    } else{
+        size_t numbytes;
 
-    fclose(file);
+        while ((numbytes = fread(buf, 1, MAX_CHUNK_SIZE, file)) > 0) {
+            if (sendto(sockfd, buf, numbytes, 0, addr, addr_len) == -1) {
+                perror("listener: sendto");
+                exit(1);
+            }
+        }
+
+        fclose(file);
+    }
 }
 
 void retrieve_user_list(int sockfd, const struct sockaddr* addr, socklen_t addr_len) {
@@ -89,11 +91,11 @@ void search_field(int sockfd, const struct sockaddr* addr, socklen_t addr_len, c
             } else if (strcmp(field_name, "year") == 0) {
                 target_field = year;
             } else {
-                // Invalid field name
+                // Nome inválido
                 return;
             }
 
-            if (strstr(target_field, target) != NULL) {
+            if (strcasestr(target_field, target) != 0) {
                 if (strcmp(field_name, "year") == 0){
                     sprintf(msg1, "%sEmail:%s | Nome:%s | Curso:%s\n", msg1, email, name, formation);
                     check = 1;
@@ -178,20 +180,20 @@ int validate_email(const char* email) {
     regex_t regex;
     int ret;
 
-    // Compile the regex
+    //Compila a regex
     ret = regcomp(&regex, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.com$", REG_EXTENDED);
     if (ret != 0) {
-        printf("Could not compile regex\n");
+        printf("Não foi possível compilar a regex\n");
         return 0;
     }
 
-    // Execute the regex
+    //Executa a regex
     ret = regexec(&regex, email, 0, NULL, 0);
     if (ret != 0) {
         return 0;
     }
 
-    // Free the regex resources
+    //Libera os recursos da regex
     regfree(&regex);
 
     return 1;
@@ -200,7 +202,7 @@ int validate_email(const char* email) {
 int main(void) {
     struct stat st = {0};
 	if (stat("../users", &st) == -1) {
-		// create directory if it does not exist
+		//cria a pasta se ela não existir
 		mkdir("../users", 0700);
 	}
     int sockfd;
@@ -211,16 +213,16 @@ int main(void) {
     char buf[MAX_CHUNK_SIZE];
 
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET; // set to AF_INET to use IPv4
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
+    hints.ai_flags = AI_PASSIVE;
 
     if ((rv = getaddrinfo(NULL, MYPORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
 
-    // loop through all the results and bind to the first we can
+    //Itera por todos os resultados e vincula ao primeiro que puder
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             perror("listener: socket");
@@ -237,13 +239,13 @@ int main(void) {
     }
 
     if (p == NULL) {
-        fprintf(stderr, "listener: failed to bind socket\n");
+        fprintf(stderr, "listener: falha ao vincular o socket\n");
         return 2;
     }
 
     freeaddrinfo(servinfo);
 
-    printf("listener: waiting to receive requests...\n");
+    printf("listener: aguardando receber solicitações...\n");
 
     for (;;) {
         addr_len = sizeof their_addr;
@@ -255,28 +257,27 @@ int main(void) {
 
         buf[numbytes] = '\0';
 
-        printf("listener: received request - %s\n", buf);
+        printf("listener: solicitação recebida - %s\n", buf);
 
-        // Check if the request is for downloading an image
+        //Verifica qual é a solicitação
         if (strncmp(buf, "download", strlen("download")) == 0) {
-            // Send the image in chunks to the talker
+            //Envia a imagem em chunks para o talker
             char target[MAX_CHUNK_SIZE];
             sscanf(buf, "download %s", target);
-            printf(target);
             send_chunks(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         } else if (strncmp(buf, "exit", strlen("exit")) == 0) {
             char* buf = "done\n";
             sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&their_addr, addr_len);
             break;
         } else if (strncmp(buf, "register", strlen("register")) == 0) {
-            char* token = strtok(buf, " ");  // Split the input string by space
-            char* email = strtok(NULL, " ");  // Get the email
-            char* name = strtok(NULL, " ");  // Get the name
-            char* surname = strtok(NULL, " ");  // Get the surname
-            char* residence = strtok(NULL, " ");  // Get the residence
-            char* formation = strtok(NULL, " ");  // Get the formation
-            char* year = strtok(NULL, " ");  // Get the year
-            char* skills = strtok(NULL, "");  // Get the skills
+            char* token = strtok(buf, "\n");  //Separa a string de entrada pelo caractere de quebra de linha
+            char* email = strtok(NULL, "\n");  //Obtém o email
+            char* name = strtok(NULL, "\n");  //Obtém o nome
+            char* surname = strtok(NULL, "\n");  //Obtém o sobrenome
+            char* residence = strtok(NULL, "\n");  //Obtém a residência
+            char* formation = strtok(NULL, "\n");  //Obtém a formação acadêmica
+            char* year = strtok(NULL, "\n");  //Obtém o ano de formatura
+            char* skills = strtok(NULL, "");  //Obtém as habilidades
 
             if (email == NULL || name == NULL || surname == NULL || residence == NULL || formation == NULL || year == NULL || skills == NULL) {
                 char invalidFormatMsg[] = "Formato inválido. Tente novamente.\n";
@@ -284,65 +285,59 @@ int main(void) {
                 continue;
             }
 
-            // Validate the email
+            //Valida o email
             if (!validate_email(email)) {
                 char invalidEmailMsg[] = "Email inválido. Tente novamente.\n";
                 sendto(sockfd, invalidEmailMsg, sizeof(invalidEmailMsg), 0, (struct sockaddr*)&their_addr, addr_len);
                 continue;
             }
 
-            // Call the save_user_data function with the received data
             save_user_data(sockfd, (struct sockaddr*)&their_addr, addr_len, email, name, surname, residence, formation, year, skills);
 
             char successMsg[] = "Cadastro realizado!";
             sendto(sockfd, successMsg, sizeof(successMsg), 0, (struct sockaddr*)&their_addr, addr_len);
-            } else if (strncmp(buf, "srch_frmt", strlen("srch_frmt")) == 0) {
-            // Parse the target formation from the received message
+        } else if (strncmp(buf, "srch_frmt", strlen("srch_frmt")) == 0) {
+            //Busca a formação alvo
             char target[MAX_CHUNK_SIZE];
             sscanf(buf, "srch_frmt %s", target);
-            // Perform the search by calling the search_field function
             search_field(sockfd, (struct sockaddr*)&their_addr, addr_len, "frmt", target);
         } else if (strncmp(buf, "srch_skill", strlen("srch_skill")) == 0) {
-            // Parse the target skill from the received message
+            //Busca a habilidade alvo
             char target[MAX_CHUNK_SIZE];
             sscanf(buf, "srch_skill %s", target);
-            // Perform the search by calling the search_field function
             search_field(sockfd, (struct sockaddr*)&their_addr, addr_len, "skill", target);
         } else if (strncmp(buf, "srch_year", strlen("srch_year")) == 0) {
-            // Parse the target year from the received message
+            //Busca o ano alvo
             char target[MAX_CHUNK_SIZE];
             sscanf(buf, "srch_year %s", target);
-            // Perform the search by calling the search_field function
             search_field(sockfd, (struct sockaddr*)&their_addr, addr_len, "year", target);
         } else if (strncmp(buf, "list", strlen("list")) == 0) {
-            // Retrieve the list of users and send it to the talker
+            //Recupera a lista de usuários
             retrieve_user_list(sockfd, (struct sockaddr*)&their_addr, addr_len);
         } else if (strncmp(buf, "srch_usr", strlen("srch_usr")) == 0) {
-            // Parse the target email from the received message
+            //Busca o email alvo
             char target[MAX_CHUNK_SIZE];
             sscanf(buf, "srch_usr %s", target);
-            // Perform the search by calling the show_user_data function
             show_user_data(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         } else if (strncmp(buf, "remove", strlen("remove")) == 0) {
-            // Parse the target email from the received message
+            //Remove o email alvo
             char target[MAX_CHUNK_SIZE];
             sscanf(buf, "remove %s", target);
-            // Perform the removal by calling the remove_user function
             remove_user(sockfd, (struct sockaddr*)&their_addr, addr_len, target);
         } else if (strncmp(buf, "help", strlen("help")) == 0) {
-            char helpMsg[] = "Available commands:\n"
-                             "register - Register a new profile\n"
-                             "remove - Remove a profile\n"
-                             "list - List all profiles\n"
-                             "srch_usr - Return information about a profile\n"
-                             "srch_frmt - List all people who graduated from a course\n"
-                             "srch_skill - List all people who have a skill\n"
-                             "srch_year - List all people who graduated in a year\n"
-                             "download - Download the image of a profile\n"
-                             "exit - Close the server\n";
+            char helpMsg[] = "Comandos disponíveis:\n"
+                            "register - Registrar um novo perfil\n"
+                            "remove - Remover um perfil\n"
+                            "list - Listar todos os perfis\n"
+                            "srch_usr - Retornar informações sobre um perfil\n"
+                            "srch_frmt - Listar todas as pessoas formadas em um curso\n"
+                            "srch_skill - Listar todas as pessoas que possuem uma habilidade\n"
+                            "srch_year - Listar todas as pessoas que se formaram em um ano\n"
+                            "download - Baixar a imagem de um perfil\n"
+                            "exit - Fechar o servidor\n";
             sendto(sockfd, helpMsg, sizeof(helpMsg), 0, (struct sockaddr*)&their_addr, addr_len);
         } else {
-            char invalidCommandMsg[] = "Invalid command, try again.\n";
+            char invalidCommandMsg[] = "Comando inválido. Tente novamente.\n";
             sendto(sockfd, invalidCommandMsg, sizeof(invalidCommandMsg), 0, (struct sockaddr*)&their_addr, addr_len);
         }
     }
