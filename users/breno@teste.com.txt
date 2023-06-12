@@ -2,6 +2,6 @@ breno@teste.com
 Breno
 Tavares
 Campinas
-Engenharia
+Engenharia da Computação
 2023
 Banco de dados, Futebol
