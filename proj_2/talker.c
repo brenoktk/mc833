@@ -187,7 +187,8 @@ int main(int argc, char* argv[]) {
             perror("talker: fopen");
             exit(1);
         }
-        while(rcv){
+        int retryCount = 0;
+        while(rcv && retryCount < MAX_RETRY_COUNT){
             if (sendto(sockfd, request, strlen(request), 0, p->ai_addr, p->ai_addrlen) == -1) {
                 perror("talker: sendto");
                 exit(1);
@@ -200,19 +201,21 @@ int main(int argc, char* argv[]) {
                 exit(1);
             } else if (poll_result == 0) {
                 printf("talker: Tempo limite expirado. Tentando novamente...\n");
+                retryCount++;
                 continue;
             }
 
             //Indica que a resposta está disponível
             rcv = receive_chunks(sockfd, p->ai_addr, p->ai_addrlen, file);
         }
-
+        if (rcv) {
+            printf("talker: Contagem máxima de tentativas alcançada. Nenhuma resposta recebida.\n");
+        }
         fclose(file);
     } else {
-        bool receivedResponse = false;
         int retryCount = 0;
 
-        while (!receivedResponse && retryCount < MAX_RETRY_COUNT) {
+        while (rcv && retryCount < MAX_RETRY_COUNT) {
             //Envia a requisição
             if (sendto(sockfd, request, strlen(request), 0, p->ai_addr, p->ai_addrlen) == -1) {
                 perror("talker: sendto");
@@ -236,11 +239,11 @@ int main(int argc, char* argv[]) {
                 }
                 buf[numbytes] = '\0';
                 printf("server: %s", buf);
-                receivedResponse = true;
+                rcv = false;
             }
         }
 
-        if (!receivedResponse) {
+        if (rcv) {
             printf("talker: Contagem máxima de tentativas alcançada. Nenhuma resposta recebida.\n");
         }
     }
