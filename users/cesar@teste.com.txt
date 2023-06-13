@@ -2,6 +2,6 @@ cesar@teste.com
 Cesar
 Guedes
 Campinas
-Engenharia
+Engenharia da Computação
 2023
 Programar em C, Japonês
